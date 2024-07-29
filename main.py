@@ -2,10 +2,11 @@ from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import GetAssetsRequest, MarketOrderRequest, GetOrdersRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, AssetClass, QueryOrderStatus
 from config import API_KEY, API_SECRET, BASE_URL
-import csv, requests
-from bs4 import BeautifulSoup
-from textblob import TextBlob
-import time
+from datetime import datetime,  timedelta
+import csv, requests, os
+
+
+
 
 trading_client = TradingClient(API_KEY, API_SECRET, paper=True)
 
@@ -68,34 +69,33 @@ def get_positions():
     portfolio = trading_client.get_all_positions()
     for position in portfolio:
         print("{} shares of {}".format(position.qty, position.symbol))
-    
-def nlp_sentiment():
-    lis = []
-    with open('test.csv', 'r', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader: 
-            titles = scrape_google_news_titles(row['Symbol'])
-            analysis = TextBlob(titles)
-            polarity = analysis.sentiment.polarity
-            lis.append({"Symbol": row['Symbol'], "Rating":polarity})
-        top_10 = sorted(lis, key=lambda x: x['Rating'], reverse=True)[:10]
-    return top_10
-            
-def scrape_google_news_titles(keyword):
-    url = f"https://news.google.com/search?q={keyword}+stock"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+
+def populate_csv(symbol,start,end):
+    url = f"https://data.alpaca.markets/v2/stocks/bars?symbols={symbol}&timeframe=1Day&start={start}&end={end}&limit=2000&adjustment=raw&feed=sip&sort=asc"
+    headers = {
+        "accept": "application/json",
+        "APCA-API-KEY-ID": API_KEY,
+        "APCA-API-SECRET-KEY": API_SECRET
+    }
     response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.content, 'html.parser')
+    data = response.json()
+    bars = data.get("bars", {}).get(symbol, [])
     
-    if response.status_code != 200:
-        print("Failed to retrieve the page")
-        return ""
+    filename = os.path.join('data', f"{symbol}_{start}_{end}.csv")
     
-    titles = ""
-    for item in soup.find_all('c-wiz', class_='PO9Zff Ccj79 kUVvS'): 
-        title = item.find('a', class_ = 'JtKRv').text
-        titles += title + ". "
-    return titles
+    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+        fieldnames = ['c', 'h', 'l', 'n', 'o', 't', 'v', 'vw']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        
+        writer.writeheader()
+        for bar in bars:
+            writer.writerow(bar)
             
-top10 = nlp_sentiment()
-print(top10)
+def populate_data():
+    one_day_ago = datetime.now() - timedelta(days=1)
+    formatted_date = one_day_ago.strftime("%Y-%m-%d")
+    with open("test.csv", 'r', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            populate_csv(row['Symbol'], "2020-01-01",formatted_date)
+    
