@@ -5,9 +5,6 @@ from config import API_KEY, API_SECRET, BASE_URL
 from datetime import datetime,  timedelta
 import csv, requests, os
 
-
-
-
 trading_client = TradingClient(API_KEY, API_SECRET, paper=True)
 
 account = trading_client.get_account()
@@ -71,7 +68,7 @@ def get_positions():
         print("{} shares of {}".format(position.qty, position.symbol))
 
 def populate_csv(symbol,start,end):
-    url = f"https://data.alpaca.markets/v2/stocks/bars?symbols={symbol}&timeframe=1Day&start={start}&end={end}&limit=2000&adjustment=raw&feed=sip&sort=asc"
+    url = f"https://data.alpaca.markets/v2/stocks/bars?symbols={symbol}&timeframe=1Day&start={start}&end={end}&limit=3000&adjustment=raw&feed=sip&sort=asc"
     headers = {
         "accept": "application/json",
         "APCA-API-KEY-ID": API_KEY,
@@ -97,5 +94,8 @@ def populate_data():
     with open("test.csv", 'r', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            populate_csv(row['Symbol'], "2020-01-01",formatted_date)
+            populate_csv(row['Symbol'], "2014-01-01",formatted_date)
+            
+#populate_data()
+populate_csv("TSLA", "2014-01-01", "2024-07-01")
     

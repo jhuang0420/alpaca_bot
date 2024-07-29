@@ -6,7 +6,10 @@ from sklearn.metrics import mean_absolute_error, r2_score
 
 
 def train_randforest():
-    data = pd.read_csv('data/A_2020-01-01_2024-07-28.csv').drop(columns=['t'])
+    data = pd.read_csv('data/TSLA_2014-01-01_2024-07-01.csv')
+    data['t'] = pd.to_datetime(data['t'], format='%Y-%m-%dT%H:%M:%SZ')
+    data['t'] = data['t'].astype('int64') // 10**9  # Convert to seconds
+     
     scaler = MinMaxScaler()
     scaled_data = scaler.fit_transform(data)
     data_scaled = pd.DataFrame(scaled_data, columns=data.columns)
